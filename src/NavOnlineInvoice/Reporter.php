@@ -2,6 +2,9 @@
 
 namespace NavOnlineInvoice;
 
+use Exception;
+use SimpleXMLElement;
+
 class Reporter {
 
     protected $connector;
@@ -33,11 +36,13 @@ class Reporter {
      *
      * A `technicalAnnulment` flag értéke automatikusan felismert és beállításra kerül az `operation` értékéből.
      *
-     * @param  InvoiceOperations|\SimpleXMLElement $invoiceOperationsOrXml
+     * @param  InvoiceOperations|SimpleXMLElement $invoiceOperationsOrXml
      * @param  string                             $operation
-     * @return string                             $transactionId
+     * @param  SimpleXMLElement                  $rawResponseXml
+     * @return string|SimpleXMLElement           $transactionId|$responseXml
+     * @throws Exception
      */
-    public function manageInvoice($invoiceOperationsOrXml, $operation = "CREATE") {
+    public function manageInvoice($invoiceOperationsOrXml, $operation = "CREATE", &$rawResponseXml = NULL) {
 
         // Ha nem InvoiceOperations példányt adtak át, akkor azzá konvertáljuk
         if ($invoiceOperationsOrXml instanceof InvoiceOperations) {
@@ -50,6 +55,8 @@ class Reporter {
 
         $requestXml = new ManageInvoiceRequestXml($this->config, $invoiceOperations, $token);
         $responseXml = $this->connector->post("/manageInvoice", $requestXml);
+        
+        if ($rawResponseXml!==NULL) $rawResponseXml=$responseXml;
 
         return (string)$responseXml->transactionId;
     }
@@ -66,11 +73,15 @@ class Reporter {
      *                                          lekérdezési paramétereket adunk át.
      * @param  array             $queryData     A queryType-nak megfelelően összeállított lekérdezési adatok
      * @param  Int               $page          Oldalszám (1-től kezdve a számozást)
-     * @return \SimpleXMLElement  $queryResultsXml A válasz XML queryResults része
+     * @param  SimpleXMLElement $rawResponseXml
+     * @return SimpleXMLElement $queryResultsXml A válasz XML queryResults része
+     * @throws Exception
      */
-    public function queryInvoiceData($queryType, $queryData, $page = 1) {
+    public function queryInvoiceData($queryType, $queryData, $page = 1, &$rawResponseXml = NULL) {
         $requestXml = new QueryInvoiceDataRequestXml($this->config, $queryType, $queryData, $page);
         $responseXml = $this->connector->post("/queryInvoiceData", $requestXml);
+
+        if ($rawResponseXml!==NULL) $rawResponseXml=$responseXml;
 
         return $responseXml->queryResults;
     }
@@ -84,7 +95,8 @@ class Reporter {
      *
      * @param  string  $transactionId
      * @param  boolean $returnOriginalRequest
-     * @return \SimpleXMLElement  $responseXml    A teljes visszakapott XML, melyből a 'processingResults' elem releváns
+     * @return SimpleXMLElement  $responseXml    A teljes visszakapott XML, melyből a 'processingResults' elem releváns
+     * @throws Exception
      */
     public function queryInvoiceStatus($transactionId, $returnOriginalRequest = false) {
         $requestXml = new QueryInvoiceStatusRequestXml($this->config, $transactionId, $returnOriginalRequest);
@@ -101,13 +113,17 @@ class Reporter {
      * a megadott adószám valódiságáról és érvényességéről a NAV adatbázisa alapján adatot szolgáltatni.
      *
      * @param  string $taxNumber            Adószám, pattern: [0-9]{8}
-     * @return bool|\SimpleXMLElement     Nem létező adószám esetén `null`, érvénytelen adószám esetén `false` a visszatérési érték, valid adószám estén
+     * @param SimpleXMLElement   $rawResponseXml
+     * @return bool|SimpleXMLElement     Nem létező adószám esetén `null`, érvénytelen adószám esetén `false` a visszatérési érték, valid adószám estén
      *                                      pedig a válasz XML taxpayerData része (SimpleXMLElement), mely a nevet és címadatokat tartalmazza.
+     * @throws Exception
      */
-    public function queryTaxpayer($taxNumber) {
+    public function queryTaxpayer($taxNumber, &$rawResponseXml = NULL) {
         $requestXml = new QueryTaxpayerRequestXml($this->config, $taxNumber);
         $responseXml = $this->connector->post("/queryTaxpayer", $requestXml);
 
+        if ($rawResponseXml!==NULL) $rawResponseXml=$responseXml;
+        
         // 1.9.4.2 fejezet alapján (QueryTaxpayerResponse) a taxpayerValidity tag csak akkor kerül a válaszba, ha a lekérdezett adószám létezik.
         // Nem létező adószámra csak egy <funcCode>OK</funcCode> kerül visszaadásra (funcCode===OK megléte a Connector-ban ellenőrizve van).
         if (!isset($responseXml->taxpayerValidity)) {
@@ -132,11 +148,15 @@ class Reporter {
      * Megjegyzés: csak a token kerül visszaadásra, az érvényességi idő nem. Ennek oka, hogy a tokent csak egy kéréshez (egyszer) lehet használni
      * NAV fórumon elhangzottak alapján (megerősítés szükséges!), és ez az egyszeri felhasználás azonnal megtörténik a token lekérése után (manageInvoice hívás).
      *
+     * @param SimpleXMLElement   $rawResponseXml
      * @return string       Token
+     * @throws Exception
      */
-    public function tokenExchange() {
+    public function tokenExchange(&$rawResponseXml = NULL) {
         $requestXml = new TokenExchangeRequestXml($this->config);
         $responseXml = $this->connector->post("/tokenExchange", $requestXml);
+        
+        if ($rawResponseXml!==NULL) $rawResponseXml=$responseXml;
 
         $encodedToken = (string)$responseXml->encodedExchangeToken;
         $token = $this->decodeToken($encodedToken);
@@ -154,7 +174,7 @@ class Reporter {
      * Paraméterben átadott adat XML-t validálja az XSD-vel és hiba esetén string-ként visszaadja a hibát.
      * Ha nincs hiba, akkor visszatérési érték `null`.
      *
-     * @param  \SimpleXMLElement $xml   Számla XML
+     * @param  SimpleXMLElement $xml   Számla XML
      * @return null|string             Hibaüzenet, vagy `null`, ha helyes az XML
      */
     public static function getInvoiceValidationError($xml) {
