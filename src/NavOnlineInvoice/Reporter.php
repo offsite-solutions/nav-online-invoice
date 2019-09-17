@@ -38,11 +38,12 @@ class Reporter {
      *
      * @param  InvoiceOperations|SimpleXMLElement $invoiceOperationsOrXml
      * @param  string                             $operation
-     * @param  SimpleXMLElement                  $rawResponseXml
-     * @return string|SimpleXMLElement           $transactionId|$responseXml
+     * @param string                              $rawRequestXml                  Raw Request XML
+     * @param string                              $rawResponseXml                 Raw Response XML
+     * @return string|SimpleXMLElement            $transactionId|$responseXml
      * @throws Exception
      */
-    public function manageInvoice($invoiceOperationsOrXml, $operation = "CREATE", &$rawResponseXml = NULL) {
+    public function manageInvoice($invoiceOperationsOrXml, $operation = "CREATE", &$rawRequestXml = NULL, &$rawResponseXml = NULL) {
 
         // Ha nem InvoiceOperations példányt adtak át, akkor azzá konvertáljuk
         if ($invoiceOperationsOrXml instanceof InvoiceOperations) {
@@ -56,7 +57,8 @@ class Reporter {
         $requestXml = new ManageInvoiceRequestXml($this->config, $invoiceOperations, $token);
         $responseXml = $this->connector->post("/manageInvoice", $requestXml);
         
-        if ($rawResponseXml!==NULL) $rawResponseXml=$responseXml;
+        if ($rawRequestXml!==NULL) $rawRequestXml=$requestXml->asXML();
+        if ($rawResponseXml!==NULL) $rawResponseXml=$responseXml->asXML();
 
         return (string)$responseXml->transactionId;
     }
@@ -73,15 +75,17 @@ class Reporter {
      *                                          lekérdezési paramétereket adunk át.
      * @param  array             $queryData     A queryType-nak megfelelően összeállított lekérdezési adatok
      * @param  Int               $page          Oldalszám (1-től kezdve a számozást)
-     * @param  SimpleXMLElement $rawResponseXml
+     * @param string     $rawRequestXml         Raw Request XML
+     * @param string     $rawResponseXml        Raw Response XML
      * @return SimpleXMLElement $queryResultsXml A válasz XML queryResults része
      * @throws Exception
      */
-    public function queryInvoiceData($queryType, $queryData, $page = 1, &$rawResponseXml = NULL) {
+    public function queryInvoiceData($queryType, $queryData, $page = 1, &$rawRequestXml = NULL, &$rawResponseXml = NULL) {
         $requestXml = new QueryInvoiceDataRequestXml($this->config, $queryType, $queryData, $page);
         $responseXml = $this->connector->post("/queryInvoiceData", $requestXml);
 
-        if ($rawResponseXml!==NULL) $rawResponseXml=$responseXml;
+        if ($rawRequestXml!==NULL) $rawRequestXml=$requestXml->asXML();
+        if ($rawResponseXml!==NULL) $rawResponseXml=$responseXml->asXML();
 
         return $responseXml->queryResults;
     }
@@ -95,12 +99,17 @@ class Reporter {
      *
      * @param  string  $transactionId
      * @param  boolean $returnOriginalRequest
+     * @param string     $rawRequestXml       Raw Request XML
+     * @param string     $rawResponseXml      Raw Response XML
      * @return SimpleXMLElement  $responseXml    A teljes visszakapott XML, melyből a 'processingResults' elem releváns
      * @throws Exception
      */
-    public function queryInvoiceStatus($transactionId, $returnOriginalRequest = false) {
+    public function queryInvoiceStatus($transactionId, $returnOriginalRequest = false, &$rawRequestXml = NULL, &$rawResponseXml = NULL) {
         $requestXml = new QueryInvoiceStatusRequestXml($this->config, $transactionId, $returnOriginalRequest);
         $responseXml = $this->connector->post("/queryInvoiceStatus", $requestXml);
+        
+        if ($rawRequestXml!==NULL) $rawRequestXml=$requestXml->asXML();
+        if ($rawResponseXml!==NULL) $rawResponseXml=$responseXml->asXML();
 
         return $responseXml;
     }
@@ -113,16 +122,18 @@ class Reporter {
      * a megadott adószám valódiságáról és érvényességéről a NAV adatbázisa alapján adatot szolgáltatni.
      *
      * @param  string $taxNumber            Adószám, pattern: [0-9]{8}
-     * @param SimpleXMLElement   $rawResponseXml
+     * @param string     $rawRequestXml       Raw Request XML
+     * @param string     $rawResponseXml      Raw Response XML
      * @return bool|SimpleXMLElement     Nem létező adószám esetén `null`, érvénytelen adószám esetén `false` a visszatérési érték, valid adószám estén
      *                                      pedig a válasz XML taxpayerData része (SimpleXMLElement), mely a nevet és címadatokat tartalmazza.
      * @throws Exception
      */
-    public function queryTaxpayer($taxNumber, &$rawResponseXml = NULL) {
+    public function queryTaxpayer($taxNumber, &$rawRequestXml = NULL, &$rawResponseXml = NULL) {
         $requestXml = new QueryTaxpayerRequestXml($this->config, $taxNumber);
         $responseXml = $this->connector->post("/queryTaxpayer", $requestXml);
 
-        if ($rawResponseXml!==NULL) $rawResponseXml=$responseXml;
+        if ($rawRequestXml!==NULL) $rawRequestXml=$requestXml->asXML();
+        if ($rawResponseXml!==NULL) $rawResponseXml=$responseXml->asXML();
         
         // 1.9.4.2 fejezet alapján (QueryTaxpayerResponse) a taxpayerValidity tag csak akkor kerül a válaszba, ha a lekérdezett adószám létezik.
         // Nem létező adószámra csak egy <funcCode>OK</funcCode> kerül visszaadásra (funcCode===OK megléte a Connector-ban ellenőrizve van).
@@ -148,15 +159,17 @@ class Reporter {
      * Megjegyzés: csak a token kerül visszaadásra, az érvényességi idő nem. Ennek oka, hogy a tokent csak egy kéréshez (egyszer) lehet használni
      * NAV fórumon elhangzottak alapján (megerősítés szükséges!), és ez az egyszeri felhasználás azonnal megtörténik a token lekérése után (manageInvoice hívás).
      *
-     * @param SimpleXMLElement   $rawResponseXml
+     * @param string     $rawRequestXml       Raw Request XML
+     * @param string     $rawResponseXml      Raw Response XML
      * @return string       Token
      * @throws Exception
      */
-    public function tokenExchange(&$rawResponseXml = NULL) {
+    public function tokenExchange(&$rawRequestXml = NULL, &$rawResponseXml = NULL) {
         $requestXml = new TokenExchangeRequestXml($this->config);
         $responseXml = $this->connector->post("/tokenExchange", $requestXml);
         
-        if ($rawResponseXml!==NULL) $rawResponseXml=$responseXml;
+        if ($rawRequestXml!==NULL) $rawRequestXml=$requestXml->asXML();
+        if ($rawResponseXml!==NULL) $rawResponseXml=$responseXml->asXML();
 
         $encodedToken = (string)$responseXml->encodedExchangeToken;
         $token = $this->decodeToken($encodedToken);
