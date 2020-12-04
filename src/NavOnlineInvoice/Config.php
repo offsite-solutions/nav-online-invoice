@@ -6,18 +6,18 @@ use Exception;
 
 class Config {
 
+    const TEST_URL = 'https://api-test.onlineszamla.nav.gov.hu/invoiceService/v3';
+    const PROD_URL = 'https://api.onlineszamla.nav.gov.hu/invoiceService/v3';
+
     public $user;
     public $software;
 
     public $baseUrl;
-    public $verifySLL = false;
+    public $verifySSL = true;
 
     public $validateApiSchema = true;
 
     public $curlTimeout = null;
-
-    // `queryTaxpayer` válasz XML-jében a 'ns2' automatikus eltávolítása
-    public $removeNamespaces = true;
 
     /** @var RequestIdGeneratorInterface */
     public $requestIdGenerator;
@@ -75,8 +75,8 @@ class Config {
     /**
      * NAV online számla API eléréséhez használt URL
      *
-     * Teszt: https://api-test.onlineszamla.nav.gov.hu/invoiceService/v2
-     * Éles: https://api.onlineszamla.nav.gov.hu/invoiceService/v2
+     * Teszt: https://api-test.onlineszamla.nav.gov.hu/invoiceService/v3
+     * Éles: https://api.onlineszamla.nav.gov.hu/invoiceService/v3
      *
      * @param string $baseUrl  NAV eléréséhez használt környezet
      */
