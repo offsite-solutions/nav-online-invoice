@@ -22,7 +22,7 @@ class Reporter {
     }
 
     /**
-     * manageInvoice operáció (1.9.1 fejezet)
+     * manageAnnulment operáció (1.8.1 fejezet)
      *
      * A /manageAnnulment operáció a technikai érvénytelenítések beküldésére szolgáló operáció.
      * Technikai érvénytelenítés csak olyan adatszolgáltatásra küldhető, amelynek a befogadása
@@ -57,8 +57,9 @@ class Reporter {
         return (string)$responseXml->transactionId;
     }
 
+
     /**
-     * manageInvoice operáció (1.9.2 fejezet)
+     * manageInvoice operáció (1.8.2 fejezet)
      *
      * A /manageInvoice a számla adatszolgáltatás beküldésére szolgáló operáció, ezen keresztül van lehetőség számla,
      * módosító vagy stornó számla adatszolgáltatást a NAV részére beküldeni.
@@ -99,7 +100,7 @@ class Reporter {
 
 
     /**
-     * queryInvoiceData operáció (1.9.4 fejezet)
+     * queryInvoiceData operáció (1.8.5 fejezet)
      *
      * A /queryInvoiceData egy számlaszám alapján működő lekérdező operáció, amely a számlán szereplő kiállító és a vevő
      * oldaláról is használható. Az operáció a megadott számlaszám teljes adattartalmát adja vissza a válaszban.
@@ -107,18 +108,29 @@ class Reporter {
      * @param  array             $invoiceNumberQuery     Az invoiceNumberQuery-nek megfelelően összeállított lekérdezési adatok
      * @return \SimpleXMLElement  $invoiceDataResultXml A válasz XML invoiceDataResult része
      */
-    public function queryInvoiceData($invoiceNumberQuery, &$rawRequestXml = NULL, &$rawResponseXml = NULL) {
+    public function queryInvoiceData($invoiceNumberQuery, $returnDecodedInvoiceData = false, &$rawRequestXml = NULL, &$rawResponseXml = NULL) {
         $requestXml = new QueryInvoiceDataRequestXml($this->config, $invoiceNumberQuery);
         $responseXml = $this->connector->post("/queryInvoiceData", $requestXml);
-
+        
+        $result = $responseXml->invoiceDataResult;
+        
         if ($rawRequestXml!==NULL) $rawRequestXml=$requestXml->asXML();
         if ($rawResponseXml!==NULL) $rawResponseXml=$responseXml->asXML();
 
-        return $responseXml->queryResults;
+        if ($returnDecodedInvoiceData) {
+            if (empty($result->invoiceData)) {
+                return null;
+            }
+            $isCompressed = $result->compressedContentIndicator;
+            return InvoiceOperations::convertToXml($result->invoiceData, $isCompressed);
+        }
+        
+        return $result;
     }
-    
+
+
     /**
-     * queryInvoiceDigest operáció (1.9.5 fejezet)
+     * queryInvoiceDigest operáció (1.8.6 fejezet)
      *
      * A /queryInvoiceDigest üzleti keresőparaméterek alapján működő lekérdező operáció, amely a számlán szereplő
      * kiállító és a vevő oldaláról is használható. Az operáció a megadott keresőfeltételeknek megfelelő, lapozható
@@ -140,9 +152,10 @@ class Reporter {
 
         return $responseXml->invoiceDigestResult;
     }
-    
+
+
     /**
-     * queryTransactionStatus operáció (1.9.7 fejezet)
+     * queryTransactionStatus operáció (1.8.8 fejezet)
      *
      * A /queryTransactionStatus a számla adatszolgáltatás feldolgozás aktuális állapotának és eredményének
      * lekérdezésére szolgáló operáció
@@ -160,7 +173,8 @@ class Reporter {
 
         return $responseXml;
     }
-    
+
+
     /**
      * queryTransactionList operáció
      *
@@ -207,7 +221,7 @@ class Reporter {
 
 
     /**
-     * queryTaxpayer operáció (1.9.8 fejezet)
+     * queryTaxpayer operáció (1.8.9 fejezet)
      *
      * A /queryTaxpayer belföldi adószám validáló operáció, mely a számlakiállítás folyamatába építve képes
      * a megadott adószám valódiságáról és érvényességéről a NAV adatbázisa alapján adatot szolgáltatni.
@@ -234,14 +248,8 @@ class Reporter {
             return false;
         }
 
-        if ($this->config->removeNamespaces) {
-            $taxpayerData = XmlUtil::removeNamespaces($responseXml->taxpayerData);
-        } else {
-            $taxpayerData = $responseXml->taxpayerData;
-        }
-
         // Az adószám valid, adózó adatainak visszaadása
-        return $taxpayerData;
+        return $responseXml->taxpayerData;
     }
 
 
@@ -270,11 +278,12 @@ class Reporter {
 
         return $token;
     }
-    
+
+
     /**
      * Utolsó REST hívás adatainak lekérdezése naplózási és hibakeresési céllal.
      *
-     * A visszaadott array a következő elemeket tartalmazza: requestUrl, requestBody, responseBody
+     * A visszaadott array a következő elemeket tartalmazza: requestUrl, requestBody, responseBody, requestId, responseXml
      *
      * Megjegyzés: bizonyos műveletek (manageAnnulment és manageInvoice) kettő REST hívást is indítanak,
      * a tokenExchange hívást, illetve magát az adatküldést. Sikeres hívás esetén csak a tényleges adatküldés
@@ -285,6 +294,17 @@ class Reporter {
     public function getLastRequestData() {
         return $this->connector->getLastRequestData();
     }
+
+
+    /**
+     * Utolsó válasz XML lekérdezése (operáció hívása után)
+     *
+     * @return \SimpleXMLElement $xml
+     */
+    public function getLastResponseXml() {
+        return $this->connector->getLastResponseXml();
+    }
+
 
     protected function decodeToken($encodedToken) {
         return Util::aes128_decrypt($encodedToken, $this->config->user["exchangeKey"]);

@@ -7,7 +7,8 @@ try {
     $config = new NavOnlineInvoice\Config($apiUrl, $userData, $softwareData);
     $reporter = new NavOnlineInvoice\Reporter($config);
 
-    $invoices = new NavOnlineInvoice\InvoiceOperations();
+    $compression = true;
+    $invoices = new NavOnlineInvoice\InvoiceOperations($compression);
 
     // Maximum 100db számla küldhető be egyszerre
     $invoices->add(simplexml_load_file(TEST_DATA_DIR . "invoice1.xml"));

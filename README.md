@@ -1,50 +1,44 @@
 # NAV Online Invoice reporter
 
-> A PHP interface for Online Invoice Data Reporting System of Hungarian Tax Office (NAV)
+> PHP interface for Online Invoice Data Reporting System of Hungarian Tax Office (NAV)
 
 _PHP interfész a NAV Online számla adatszolgáltatásához_
 
 __Letöltés:__
 - Composer: [packagist.org/packages/pzs/nav-online-invoice](https://packagist.org/packages/pzs/nav-online-invoice)
-- Legfrissebb verzió: [github.com/pzs/nav-online-invoice/releases/latest](https://github.com/pzs/nav-online-invoice/releases/latest)
+- Legfrissebb verziók:
+    - 3.0-ás API: [v3.0.0-RC1](https://github.com/pzs/nav-online-invoice/releases/tag/v3.0.0-RC1)
+    - 2.0-ás API: [v2.0.6](https://github.com/pzs/nav-online-invoice/releases/tag/v2.0.6)
 - Korábbi verziók: [github.com/pzs/nav-online-invoice/releases](https://github.com/pzs/nav-online-invoice/releases)
 - Példa fájlok: [github.com/pzs/nav-online-invoice/tree/master/examples](https://github.com/pzs/nav-online-invoice/tree/master/examples)
 
 NAV Online számla oldala: [onlineszamla.nav.gov.hu](https://onlineszamla.nav.gov.hu/)
 
-## :mega: 2.0-ás API támogatás
+## :fire: v3.0-ás API támogatás :fire:
 
-A modul ezen verzió a NAV 2.0-ás API-ját támogatja.
+A modul ezen verziója a NAV v3.0-ás API-ját támogatja. v2.0-ás API támogatáshoz használd a korábbi, [v2.x](https://github.com/pzs/nav-online-invoice/tree/2.x) verziót.
 
-## Frissítés v2.0-ás API-ra
+## :information_source: Frissítés v3.0-ás API-ra
 
 <details>
 <summary>Kattints ide a leírás megjelenítéséhez!</summary>
 
-:information_source: A NAV 2.0-ás API teszt és éles környezetben is elérhető már.
-
-:warning: 2020. április 1-jétől kizárólag a 2.0-ás API lesz alkalmazható az éles környezetben ([forrás](https://onlineszamla.nav.gov.hu/home))
-
-A 2.0-ás `nav-online-invoice` modulra való frissítés után a következő módosításokat kell végrehajtanod:
-
+v3.0-ás `nav-online-invoice` modulra történő frissítés után - a modult érintően - csak az URL-t kell átírnod `v3`-asra, más teendőd nincs, de ajánlott elolvasni az itt lévő változásokat:
 
 - `NavOnlineInvoice\Config` példányosításakor:
-    - apiUrl a következőre változott: `https://api-test.onlineszamla.nav.gov.hu/invoiceService/v2`, illetve "-test" rész nélkül éles környezetben,
-    - software adatok megadása kötelező lett,
-- SHA3-512-es hash algoritmust kell használni, melyhez PHP 7.1.0-ás verzió, vagy újabb szükséges. Ha ennél régebbit használsz, akkor külső könyvtárat kell betölteni, melyet _nem_ tartalmaz a `nav-online-invoice` modul:
-    - [n-other/php-sha3](https://github.com/n-other/php-sha3), MIT license ([packagist](https://packagist.org/packages/n-other/php-sha3)),
-    - vagy [desktopd/php-sha3-streamable](https://notabug.org/desktopd/php-sha3-streamable), LGPL 3+ license,
-    - a fenti kettő könyvtár közül elég az egyiket telepítened/behivatkoznod, s azt automatikusan használni fogja a `nav-online-invoice`.
-- technikai érvényesítést mostantól nem a `manageInvoice()` hívással, hanem `manageAnnulment()` hívással kell beküldened,
-- a státusz lekérdezés metódus át lett nevezve `queryInvoiceStatus()`-ról `queryTransactionStatus()`-ra,
-- a `queryInvoiceData()` metódus változott: ezzel mostantól csak egy számla adatait lehet lekérni számlaszám alapján (kiállító és vevő oldalról is), keresni pedig az új `queryInvoiceDigest()` metódussal lehet,
-- a `queryTaxpayer()` metódus visszatérési értékében a címadatokat más formában adja vissza a NAV, illetve kibővül más információkkal is,
-- továbbá a 2.0-ás API-n új operációk is elérhetőek lettek: `queryTransactionList` és `queryInvoiceChainDigest`, lásd a leírást és példákat.
+    - apiUrl a következőre változott: `https://api-test.onlineszamla.nav.gov.hu/invoiceService/v3`, illetve "-test" rész nélkül éles környezetben,
+    - Esetleg használhatod a beépített `NavOnlineInvoice\Config::TEST_URL` és `NavOnlineInvoice\Config::PROD_URL` változókat, így a jövőben nem kell bajlódni az URL átírásával,
 
-Új funkció a `nav-online-invoice` modulban:
-- naplózást és hibakeresést segítő `$reporter->getLastRequestData()` metódus, lásd a [példafájlt](examples/log.php), illetve a [leírást](#rest-hívás-részletei).
+- Változások:
+    - A boríték XML-ből a namespace-eket automatikusan törli a modul, erről (és segédletről a namespace-ekhez) itt találsz leírást: [XML namespace-ek](docs/xml_namespaces.md).
+    - Elektronikus számlázásról (`electronicInvoiceHash` és `completenessIndicator`) lásd a [manageInvoice_electronic_invoice.php](examples/manageInvoice_electronic_invoice.php) példafájlt és az [Elektronikus számlázás támogatása](docs/electronic_invoice.md) leírást.
+    - Config osztályban a `$verifySSL` értéke alapértelmezetten `true` lett, így ha bármi rosszul beállított certificate miatt nem kapcsolódna a modul a NAV-hoz, `$config->verifySSL = false;`-ra állításával ki tudod kapcsolni a `cURL`-ben az SSL ellenőrzést.
+    - `$reporter->getLastRequestData()`-en belül a `lastRequestId` át lett nevezve `requestId`-ra.
 
-Ha ezekkel megvagy, akkor már csak az adatsémákat kell átírnod, melyhez segítséget a NAV-os dokumentációkban, illetve fórumokon találsz, de ha megpróbálod beküldeni a régi adat XML-t, akkor az interfész is ki fogja írni a sémavalidálási hibát. NAV-os changelog: [CHANGELOG_2.0](https://github.com/nav-gov-hu/Online-Invoice/blob/master/src/schemas/nav/gov/hu/OSA/CHANGELOG_2.0.md)
+- Új funkció a `nav-online-invoice` modulban:
+    - `$reporter->getLastResponseXml()` metódus, mely visszaadja az utolsó válasz XML-t (ez a namespace nélküli változat, lásd [XML namespace-ek](docs/xml_namespaces.md)).
+
+Ha ezekkel megvagy, akkor már csak az adatsémákat kell átírnod, melyhez segítséget a NAV-os dokumentációkban, illetve fórumokon találsz, de ha megpróbálod beküldeni a régi adat XML-t, akkor az interfész is ki fogja írni a sémavalidálási hibát. NAV-os changelog: [CHANGELOG_3.0](https://github.com/nav-gov-hu/Online-Invoice/blob/master/src/schemas/nav/gov/hu/OSA/CHANGELOG_3.0.md)
 
 </details>
 
@@ -54,9 +48,6 @@ Ha ezekkel megvagy, akkor már csak az adatsémákat kell átírnod, melyhez seg
 
 A használathoz a NAV oldalán megfelelő regisztrációt követően létrehozott technikai felhasználó adatainak beállítása szükséges!
 
-:information_source: Ez a verziójú `nav-online-invoice` modul csak az új, v2.0-ás NAV-os interfésszel tud kommunikálni. Ha még a hamarosan kivezetésre kerülő v1.1-es NAV interfészt használod, akkor a [korábbi verziót](https://github.com/pzs/nav-online-invoice/releases/tag/v1.1.0) töltsd le.
-
-
 ### Inicializálás
 
 Technikai felhasználó és szoftver adatok beállítása, Reporter példány létrehozása:
@@ -65,6 +56,7 @@ Technikai felhasználó és szoftver adatok beállítása, Reporter példány l�
 $userData = array(
     "login" => "username",
     "password" => "password",
+    // "passwordHash" => "...", // Opcionális, a jelszó már SHA512 hashelt változata. Amennyiben létezik ez a változó, akkor az authentikáció során ezt használja
     "taxNumber" => "12345678",
     "signKey" => "sign-key",
     "exchangeKey" => "exchange-key",
@@ -81,7 +73,7 @@ $softwareData = array(
     "softwareDevTaxNumber" => "string",
 );
 
-$apiUrl = "https://api-test.onlineszamla.nav.gov.hu/invoiceService/v2";
+$apiUrl = "https://api-test.onlineszamla.nav.gov.hu/invoiceService/v3";
 
 $config = new NavOnlineInvoice\Config($apiUrl, $userData, $softwareData);
 $config->setCurlTimeout(70); // 70 másodperces cURL timeout (NAV szerver hívásnál), opcionális
@@ -93,7 +85,7 @@ $reporter = new NavOnlineInvoice\Reporter($config);
 
 ### Adószám ellenőrzése (`queryTaxpayer`)
 
-Megjegyzés: a modul automatikusan eltávolítja az `ns2` namespace-t a válasz XML-ből (lásd [#20](https://github.com/pzs/nav-online-invoice/issues/20)), így kényelmesebben használható az XML válasz. Ez a működés szükség szerint kikapcsolható a `$config->removeNamespaces` `false`-ra állításával.
+A modul automatikusan eltávolítja a namespace-eket a válasz XML-ből (lásd [XML namespace-ek](docs/xml_namespaces.md)), így kényelmesebben használható az XML válasz.
 
 ```php
 try {
@@ -160,12 +152,14 @@ Módosító vagy sztornó számlához használd a "MODIFY" és "STORNO" értéke
 
 Több számla egyszerre való feladásához lásd a [manageInvoice_multiple.php](examples/manageInvoice_multiple.php) példát.
 
+Elektronikus számlázásról (`electronicInvoiceHash` és `completenessIndicator`) lásd a [manageInvoice_electronic_invoice.php](examples/manageInvoice_electronic_invoice.php) példafájlt és az [Elektronikus számlázás támogatása](docs/electronic_invoice.md) leírást.
+
 :information_source: _Oké, beküldtem a számlát, de mit csináljak Exception esetén?_ :interrobang:
 
 - Ha `NavOnlineInvoice\XsdValidationError` Exception-t kaptál, akkor valamelyik XML-ben lesz hiba! Lehet a szakmai (számla) XML hibás (bár ezt már számlakészítéskor is célszerű ellenőrizni), de a boríték XML is lehet hibás (pl. megadtad a software adatokat, de rossz a formátuma). Fontos megjegyezni, hogy ez az Exception még a küldés előtt jön a nav-online-invoice által generálva.
 - Ha `NavOnlineInvoice\CurlError` vagy `NavOnlineInvoice\HttpResponseError` Exception-t kaptál, akkor mindenképp próbáld újraküldeni a számlát pár perc múlva, mert lehet csak épp nincs interneted, vagy a NAV szervere nem elérhető/furcsaságokat válaszol.
 - Ha `NavOnlineInvoice\GeneralErrorResponse` vagy `NavOnlineInvoice\GeneralExceptionResponse` az Exception, akkor a NAV válaszolt egy XML üzenettel, viszont ebben - az Exception típusának megfelelő típusú - hibaüzenet volt. Mind a kettő exception esetén az errorCode az $ex->getErrorCode() metódussal lekérhető, melyek értelmezését megtaláljuk a NAV által kiadott interfész specifikációban. Ugyan nem minden hibakód esetén, de az esetek többségében itt is érdemes próbálkozni az újraküldéssel.
-- Más egyéb Exception esetén (`NavOnlineInvoice\GeneralExceptionResponse`, `NavOnlineInvoice\GeneralErrorResponse` és `\Exception`) valószínűleg felesleges az újrapróbálkozás, naplózd és ellenőrizd a hibaüzenetet (`$ex->getMessage()`)!
+- Más egyéb Exception esetén (`NavOnlineInvoice\GeneralExceptionResponse`, `NavOnlineInvoice\GeneralErrorResponse` és `\Exception`) valószínűleg felesleges az újra próbálkozás, naplózd és ellenőrizd a hibaüzenetet (`$ex->getMessage()`)!
 
 
 ### Technikai érvénytelenítés (`manageAnnulment`)
@@ -208,7 +202,7 @@ try {
 
 ### Számla lekérdezése (`queryInvoiceData`)
 
-Számla lekérdezése számlaszám alapján, mely kiállító és vevő oldalról is használható.
+Számla lekérdezése számlaszám alapján, mely kiállító és vevő oldalról is használható. Második paraméterben `true`-t átadva a metódus a dekódolt számla XML-t adja vissza `invoiceDataResult` helyett.
 
 ```php
 try {
@@ -216,10 +210,26 @@ try {
         "invoiceNumber" => "T20190001",
         "invoiceDirection" => "OUTBOUND",
     ];
+
+    // Lekérdezés
     $invoiceDataResult = $reporter->queryInvoiceData($invoiceNumberQuery);
 
     print "Query results XML elem:\n";
     var_dump($invoiceDataResult);
+
+    // Számla kézi dekódolása
+    $invoice = NavOnlineInvoice\InvoiceOperations::convertToXml($invoiceDataResult->invoiceData, $invoiceDataResult->compressedContentIndicator);
+
+    // Számla:
+    var_dump($invoice);
+
+    // *** VAGY ***
+
+    // Lekérdezés és számla automatikus dekódolása
+    $invoice = $reporter->queryInvoiceData($invoiceNumberQuery, true); // 2. paraméter jelzi az automatikus dekódolást
+
+    // Számla:
+    var_dump($invoice);
 
 } catch(Exception $ex) {
     print get_class($ex) . ": " . $ex->getMessage();
@@ -243,7 +253,9 @@ try {
         ],
     ];
 
-    $invoiceDigestResult = $reporter->queryInvoiceDigest($invoiceQueryParams, 1, "OUTBOUND");
+    $page = 1;
+
+    $invoiceDigestResult = $reporter->queryInvoiceDigest($invoiceQueryParams, $page, "OUTBOUND");
 
     print "Query results XML elem:\n";
     var_dump($invoiceDigestResult);
@@ -341,7 +353,7 @@ $data = $reporter->getLastRequestData();
 print "<br /><br />Request URL: " . htmlspecialchars($data['requestUrl']);
 print "<br /><br />Request body: " . htmlspecialchars($data['requestBody']);
 print "<br /><br />Response body: " . htmlspecialchars($data['responseBody']);
-print "<br /><br />Request ID: " . htmlspecialchars($data['lastRequestId']);
+print "<br /><br />Request ID: " . htmlspecialchars($data['requestId']);
 ```
 
 A `requestBody` ezen modul által összeállított XML string-et tartalmazza, a `responseBody` pedig a NAV által visszaadott üzenetet, mely az esetek többségében egy XML string.
@@ -355,8 +367,8 @@ A `requestBody` ezen modul által összeállított XML string-et tartalmazza, a 
 `Config` példány létrehozásakor a paraméterek megadása kötelező:
 
 - `$baseUrl` tipikusan a következő:
-    - teszt környezetben: `https://api-test.onlineszamla.nav.gov.hu/invoiceService/v2`
-    - éles környezetben: `https://api.onlineszamla.nav.gov.hu/invoiceService/v2`
+    - teszt környezetben: `https://api-test.onlineszamla.nav.gov.hu/invoiceService/v3`
+    - éles környezetben: `https://api.onlineszamla.nav.gov.hu/invoiceService/v3`
 - `$user` array tartalmazza a NAV oldalán létrehozott technikai felhasználó adatait.
 - `$software` array tartalmazza a számlázó szoftver adatait. 2.0-ás verziótól ennek megadása kötelező, formátumát pedig a NAV által kiadott XSD biztosítja.
 
@@ -386,23 +398,24 @@ Ezen az osztályon érhetjük el a NAV interfészén biztosított szolgáltatás
 - `__construct(Config $config)`
 - `manageInvoice($invoiceOperationsOrXml [, $operation])`: A számla beküldésére szolgáló operáció. Visszatérési értékként a `transactionId`-t adja vissza string-ként. Paraméterben a beküldendő számla XML-t kell átadni, illetve a hozzá tartozó műveletet (ManageInvocieOperationType): CREATE, MODIFY, STORNO. Átadható egyszerre több számla is, ilyenkor első paraméterben InvoiceOperations példányt kell átadni (második paraméternek nincs szerepe ilyenkor).
 - `manageAnnulment($invoiceOperationsOrXml)`: Technikai érvénytelenítés beküldésére szolgáló operáció. Paraméterben a technikai érvénytelenítést leíró XML-t, vagy egy InvoiceOperations példányt kell átadni. Utóbbi esetben az InvoiceOperations példány több XML-t is tartalmazhat. A metódus visszaadja a transactionId-t, mellyel lekérdezhető a tranzakció eredménye.
-- `queryInvoiceData($invoiceNumberQuery)`: Számla lekérdezése számlaszám alapján, mely kiállító és vevő oldalról is használható. Paraméterben az invoiceNumberQuery-nek megfelelően összeállított lekérdezési adatokat kell átadni (`SimpleXMLElement` példány). Visszatérési értéke a visszakapott XML `invoiceDataResult` része (`SimpleXMLElement` példány)
+- `queryInvoiceData($invoiceNumberQuery [, $returnDecodedInvoiceData = false])`: Számla lekérdezése számlaszám alapján, mely kiállító és vevő oldalról is használható. Paraméterben az invoiceNumberQuery-nek megfelelően összeállított lekérdezési adatokat kell átadni (`SimpleXMLElement` példány). Visszatérési értéke a visszakapott XML `invoiceDataResult` része (`SimpleXMLElement` példány), vagy a számla XML, ha 2. paraméterben `true`-t adtunk át.
 - `queryInvoiceDigest($invoiceQueryParams, $page = 1, $direction = "OUTBOUND")`: Lekérdező operáció, mely kiállító és vevő oldalról is használható. Paraméterben az invoiceQueryParams-nak megfelelően összeállított lekérdezési adatokat kell átadni (SimpleXMLElement), az oldalszámot és a keresés irányát (OUTBOUND, INBOUND). A válasz XML invoiceDigestResult része.
 - `queryTransactionStatus(string $transactionId [, $returnOriginalRequest = false])`: A számla adatszolgáltatás feldolgozás aktuális állapotának és eredményének lekérdezésére szolgáló operáció
 - `queryTransactionList($insDate [, $page = 1])`: A kérésben megadott időintervallumban, a technikai felhasználóhoz tartozó adószámhoz beküldött számlaadat-szolgáltatások listázására szolgál
 - `queryInvoiceChainDigest($invoiceChainQuery [, $page = 1])`
 - `queryTaxpayer(string $taxNumber)`: Belföldi adószám validáló és címadat lekérdező operáció. Visszatérési éréke lehet `null` nem létező adószám esetén, `false` érvénytelen adószám esetén, vagy TaxpayerDataType XML elem név és címadatokkal valid adószám esetén
 - `tokenExchange()`: Token kérése manageInvoice művelethez (közvetlen használata nem szükséges, viszont lehet használni, mint teszt hívás). Visszatérési értékként a dekódolt tokent adja vissza string-ként.
-- `getLastRequestData()`: Utolsó REST hívás adatainak lekérdezése naplózási és hibakeresési céllal. A visszaadott array a következő elemeket tartalmazza: requestUrl, requestBody, responseBody és lastRequestId. Megjegyzés: bizonyos műveletek (manageAnnulment és manageInvoice) kettő REST hívást is indítanak, a tokenExchange hívást, illetve magát az adatküldést. Sikeres hívás esetén csak a tényleges adatküldés eredménye érhető el, Exception esetén pedig mindig az utolsó hívás adata.
+- `getLastRequestData()`: Utolsó REST hívás adatainak lekérdezése naplózási és hibakeresési céllal. A visszaadott array a következő elemeket tartalmazza: requestUrl, requestBody, responseBody és requestId. Megjegyzés: bizonyos műveletek (manageAnnulment és manageInvoice) kettő REST hívást is indítanak, a tokenExchange hívást, illetve magát az adatküldést. Sikeres hívás esetén csak a tényleges adatküldés eredménye érhető el, Exception esetén pedig mindig az utolsó hívás adata.
+- `getLastResponseXml()`: Utolsó válasz XML lekérdezése (operáció hívása után)
 
 
 ### `InvoiceOperations` osztály
 
-`manageInvoice` és `manageAnnulment` híváshoz használandó collection, melyhez a feladni kívánt számlákat lehet hozzáadni. Ez az osztály validálja is az átadott szakmai XML-t az XSD-vel.
+`manageInvoice` és `manageAnnulment` híváshoz használandó collection, melyhez a feladni kívánt számlákat lehet hozzáadni. Ez az osztály validálja is az átadott szakmai XML-t az XSD-vel. Elektronikus számlázáshoz lásd [ezt a leírást](docs/electronic_invoice.md).
 
-- `__construct()`
+- `__construct($compression = false)`: compression: gzip tömörítés engedélyezése, részletek: NAV dokumentáció, 1.6.5 Tömörítés és méretkorlát
 - `useDataSchemaValidation([$flag = true])`: Számla adat hozzáadásakor az XML-t (szakmai XML) validálja az XSD-vel. Alapértelmezetten be van kapcsolva a validáció.
-- `add(SimpleXMLElement $xml [, $operation = "CREATE"])`: Számla XML hozzáadása a listához
+- `add(SimpleXMLElement $xml [, $operation = "CREATE"][, $electronicInvoiceHash = null])`: Számla XML hozzáadása a listához
 - `isTechnicalAnnulment()`
 - `getInvoices()`
 
@@ -440,6 +453,12 @@ Szükséges modulok:
 ## TODO
 
 - További tesztek írása, ami a NAV szerverét is meghívja teszt közben
+
+
+## További modulok NAV API-hoz
+
+- NodeJS: https://github.com/angro-kft/nav-connector
+- Scala (JVM): https://github.com/enlivensystems/invoicing-hungarian
 
 
 ## License
